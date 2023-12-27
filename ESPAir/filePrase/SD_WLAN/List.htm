@@ -1,0 +1,1937 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>DSair</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="height=device-height,width=device-width,height=device-height,initial-scale=1.0" />
+    <meta name="author" content="Desktop Station Co.,Ltd.">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="apple-touch-icon" href="/SD_WLAN/c/apple-touch-icon.png" />
+    <link rel="shortcut icon" href="/SD_WLAN/c/favicon.ico" type="image/vnd.microsoft.icon">
+    <link rel="stylesheet" href="/SD_WLAN/c/jqui.css" />
+    <link rel="stylesheet" href="/SD_WLAN/c/jquery-ui-1.12.icon-font.min.css" />    
+    <link rel="stylesheet" href="/SD_WLAN/css/dsair.css" />
+
+    <style type="text/css">
+        .content li {
+            background: #eee;
+            padding: 10px;
+        }
+
+        .hide {
+            display: none;
+        }
+
+        #tabcontrol.ui-tabs {
+            padding: 0;
+            margin-top:0px;
+            border-width: 0;
+        }
+
+        #tabcontrol .ui-widget-header {
+            border: 0;
+        }
+
+        #tabcontrol .ui-tabs-nav {
+            border-width: 0;
+            padding: 0;
+        }
+
+        #tabcontrol .ui-tabs-panel {
+            border-width: 1px;
+        }
+
+        #tabcontrol .ui-tabs-nav li.ui-tabs-selected {
+            border-width: 1px;
+            margin-bottom: 0px;
+        }
+
+        .LocEditDlgClass .ui-dialog-buttonpane button {
+            font-size: 1.5em;
+            width: 3em;
+            padding: 0.2em;
+        }
+        .CVEditDlgClass .ui-dialog-buttonpane button {
+            font-size: 1.5em;
+            width: 3em;
+            padding: 0.2em;
+        }
+    </style>
+
+
+    <script src="/SD_WLAN/c/jq.js"></script>
+    <script src="/SD_WLAN/c/jqui.js"></script>
+    <script src="/SD_WLAN/js/device.js"></script>
+    <script src="/SD_WLAN/js/config.js"></script>
+    <script src="/SD_WLAN/js/manager.js"></script>
+    <script src="/SD_WLAN/js/storage.js"></script>
+    <script src="/SD_WLAN/js/layout.js"></script>
+    <script src="/SD_WLAN/js/cvprogram.js"></script>
+     <script>
+        var CacheMeterBG = new Image(); //メーター背景のキャッシュ
+        var CachedImage = 0;
+        var UrlGateway = "";
+        var gIntervalTimeout = 0;
+
+        /* 機関車関係 */
+        var LocAddr = 3;
+        var LocSpeed = [0, 0, 0, 0];
+        var LocDirReverse = [0, 0, 0, 0];
+        var LocProtocol = 0;
+        var LocSpeedStep = 2;
+        var LocFuncStatus = [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        ];
+        var LocDir = ["FWD", "FWD", "FWD", "FWD"];
+        var LastUpdateTime = 0;
+        var LastLocSpeed = [0, 0, 0, 0];
+        var LocMeterMaxSpeed = 240;
+        var gLastSpeed = 0;
+        
+        var gReadCVNo = 0;
+        var gReadCVVal = 0;
+        
+        //メーター関係
+
+        /* アクセサリ関係 */
+        var AccPageNo = 0;
+        var AccStatus = new Array(2044, 0);
+        var AccTypes = new Array(2044, 0); //表示設定
+        var Map_AccAddr = new Array(100 * 50);
+        var Map_Image = new Array(100 * 50);
+        var Map_Width = 100;
+        var Map_Height = 50;
+        var AccProtocol = 14335;
+        var PowerStatus = 0;
+        var CenterX = 0;
+        var CenterY = 0;
+        var modeAccEdit = 0;//0: 操作モード, 1:アクセサリアイコン編集モード
+
+        var stateMeterMoving = 0;
+
+        var modeLocIndex = 0;
+        var modeDblHeading = 0;
+        var IntervalUpdateLimit = 0;
+
+        var imgObjArry = [];
+        var dblLocArray = [];
+        var DblAddrLabel = "3";
+
+        dblLocArray[0] = 3;
+
+        for( var i = 0; i< 2044; i++)
+        {
+            AccTypes[i] = 0;
+            AccStatus[i] = 0;
+        }
+
+        ClearMaps();
+
+        $(function () {
+
+
+
+            //メーター背景プリレンダ
+            drawMeterBackground(40);
+
+
+            $("#tabcontrol").bind('tabsactivate', function (event, ui) {
+
+                switch (ui.newTab.index()) {
+                    case 0:
+                        onDrawMeter(40);
+                        break;
+                    case 1:
+                        DrawAccPanel();
+                        break;
+                    case 2:
+                        DrawLayoutTool();
+                        DrawLayoutPanel();
+                        break;
+                }
+            });
+            
+            
+         onDrawMeter(40);
+
+        });
+
+
+
+        $(function () {
+
+            $("input[type=submit], a, button")
+                .button()
+                .click(function (event) {
+                    event.preventDefault();
+                });
+        });
+
+        $(function () {
+
+            $("#getvalue").click(function () {
+                alert(spinner.spinner("value"));
+            });
+            $("#setvalue").click(function () {
+                spinner.spinner("value", 5);
+            });
+            $("button").button();
+
+            $( "#dialogAL" ).dialog({ autoOpen: false });
+            $( "#dialogMsg" ).dialog({ autoOpen: false });
+            $( "#dialogCVInfo" ).dialog({ autoOpen: false });
+
+
+            /* jQuery タブクリックイベント */
+            $("#tabcontrol li").click(function () {
+                var num = $("#tabcontrol li").index(this);
+
+                switch (num) {
+                    case 0:
+                        //onDraw(40);
+                        break;
+                    case 1:
+                        //DrawAccPanel();
+                        break;
+                    default:
+                        //何もしない	
+                        break;
+
+                }
+
+
+
+            });
+
+        });
+
+        $(function () {
+            setVisibleItems(0);
+
+            $("#maxspeed_slider").slider({
+                value: 6,
+                min: 2,
+                max: 6,
+                step: 1,
+                change: function (event, ui) {
+                    onConfigMaxSpeed();
+                }
+            });
+
+
+            onSelectProtocol_boot();
+            $('#funcbox1').buttonset();
+            $('#protcolset').buttonset();
+            $("#protcolset_acc").buttonset();
+            $('#addrselector').buttonset();
+
+            $(radio_adr1_label).text("3");
+            $(radio_adr2_label).text("-");
+            $(radio_adr3_label).text("-");
+            $(radio_adr4_label).text("-");
+
+            $('input[type="checkbox"]').button();
+
+            $('#tabcontrol').tabs({
+                fx: {
+                    opacity: 'toggle',
+                    duration: 'fast'
+                }
+            });
+
+            $(DblAddr).val("3");
+
+            for (var i = 0; i < 512; i++) {
+                AccStatus[i] = 0;
+            }
+            
+            //Load from LocalStorage
+            STORE_Init();
+
+        });
+
+
+        function setVisibleItems(inOnSwitch) {
+
+ 	       $(function () {
+            if (inOnSwitch == 0) {
+                PowerStatus = 0;
+                $("#powerOn").show('normal');
+                $("#powerOff").hide('normal');
+                $("#btnStop").attr('disabled', true);
+                $("#btnRev").attr('disabled', true);
+                $("#btnFwd").attr('disabled', true);
+            } else {
+                PowerStatus = 1;
+                $("#powerOn").hide('normal');
+                $("#powerOff").show('normal');
+                $("#btnStop").removeAttr("disabled");
+                $("#btnRev").removeAttr("disabled");
+                $("#btnFwd").removeAttr("disabled");
+            }
+  	      });
+
+        }
+
+        function onSelectProtocol_boot() {
+            if ($("[name=radio_loc]:checked").val() == 1) {
+                //DCC
+                LocProtocol = 49152;
+                LocSpeedStep = 2;
+            } else {
+                //MM2
+                LocProtocol = 0;
+                LocSpeedStep = 0;
+            }
+        }
+
+
+        function onSelectProtocol() {
+
+            onSelectProtocol_boot();
+
+            STORE_Save_ProtcolLoc();
+
+        }
+
+        function onSelectAccProtocol() {
+            if ($("[name=radio_acc]:checked").val() == 1) {
+                //DCC
+                AccProtocol = 14335;
+            } else {
+                //MM2
+                AccProtocol = 12287;
+            }
+
+            STORE_Save_ProtcolAcc();
+
+        }
+
+        function GetUrl() {
+            return "/command.cgi?op=131&ADDR=0&LEN=64&DATA=";
+
+        }
+
+
+        function onClickFunction(inFuncNo) {
+            aOnOff = LocFuncStatus[modeLocIndex][inFuncNo];
+
+            if (aOnOff == 1) {
+                aOnOff = 0;
+            } else {
+                aOnOff = 1;
+            }
+
+            LocFuncStatus[modeLocIndex][inFuncNo] = aOnOff;
+
+
+            var selectVal = modeLocIndex;
+
+            if (selectVal >= dblLocArray.length) {
+                selectVal = 0;
+            }
+
+
+            var aLocAddr = parseInt(LocProtocol) + parseInt(dblLocArray[parseInt(selectVal)]);
+            var url = GetUrl() + "FN(" + aLocAddr + "," + inFuncNo + "," + aOnOff + ")";
+            
+            //データ配信によるアップデートを一時抑制
+            IntervalUpdateLimit = 4;
+
+            $.get(url, function (data) {});
+            
+        }
+
+        function onClickStop() {
+
+
+            var aTempDblHead = modeDblHeading;
+            modeDblHeading = 1;
+
+            //強制停止
+            LocSpeed[0] = 0;
+            LocSpeed[1] = 0;
+            LocSpeed[2] = 0;
+            LocSpeed[3] = 0;
+
+            onChangeSpeed(0);
+
+            //重連モードを戻す
+            modeDblHeading = aTempDblHead;
+            
+            //データ配信によるアップデートを一時抑制
+            IntervalUpdateLimit = 4;
+
+        }
+
+        function onClickFwd(inFwd) {
+
+            var aLocAddr = "";
+            var aLocAddr_rev = "";
+            var aFWD = inFwd;
+            var aFWD_rev = reverseDir(inFwd);
+
+            if (modeDblHeading == 0) {
+                //1
+                aLocAddr = parseInt(LocProtocol) + parseInt(dblLocArray[modeLocIndex]);
+
+                if (LocDirReverse[modeLocIndex] == 1) {
+                    aFWD = aFWD_rev;
+                }
+
+            } else {
+                //重連
+                for (var i = 0; i < dblLocArray.length; i++) {
+                    var aTempLocAddr = parseInt(LocProtocol) + parseInt(dblLocArray[i]);
+
+                    if (LocDirReverse[i] == 1) {
+                        aLocAddr_rev = aLocAddr_rev + aTempLocAddr;
+
+                        aLocAddr_rev = aLocAddr_rev + "/";
+                    } else {
+                        aLocAddr = aLocAddr + aTempLocAddr;
+
+                        if ((i + 1) < dblLocArray.length) {
+                            aLocAddr = aLocAddr + "/";
+                        }
+                    }
+                }
+            }
+
+            if ($.isNumeric(aLocAddr) == false) {
+                if (aLocAddr.lastIndexOf("/") == 1) {
+                    aLocAddr = aLocAddr.substr(0, aLocAddr.length - 1);
+                }
+            }
+
+            if ($.isNumeric(aLocAddr_rev) == false) {
+                if (aLocAddr_rev.lastIndexOf("/") == 1) {
+                    aLocAddr_rev = aLocAddr_rev.substr(0, aLocAddr_rev.length - 1);
+                }
+            }
+
+            //データ配信によるアップデートを一時抑制
+            IntervalUpdateLimit = 4;
+
+            /*ゼロ速にしてから送信*/
+            var url = GetUrl() + "DI(" + aLocAddr + "," + aFWD + ")";
+
+            $.get(url, function (data) {});
+
+            if (aLocAddr_rev != "") {
+                setTimeout(function () {
+                    var url = GetUrl() + "DI(" + aLocAddr_rev + "," + aFWD_rev + ")";
+                    $.get(url, function (data) {});
+                }, 500);
+            }
+
+            /* 速度強制停止＆表示切り替え*/
+            if ((inFwd == 2) && (LocDir[modeLocIndex] == "FWD")) {
+                LocDir[modeLocIndex] = "REV";
+                LocSpeed[modeLocIndex] = 0;
+                onDrawMeter(40);
+            } else if ((inFwd == 1) && (LocDir[modeLocIndex] == "REV")) {
+                LocDir[modeLocIndex] = "FWD";
+                LocSpeed[modeLocIndex] = 0;
+                onDrawMeter(40);
+            }
+        }
+
+        function onChangeSpeed(inSpeed) {
+            LocSpeed[modeLocIndex] = inSpeed;
+            var aLocAddr = "";
+
+            if (modeDblHeading == 0) {
+                //1
+                aLocAddr = parseInt(LocProtocol) + parseInt(dblLocArray[modeLocIndex]);
+
+            } else {
+                //重連
+                for (var i = 0; i < dblLocArray.length; i++) {
+                    var aTempLocAddr = parseInt(LocProtocol) + parseInt(dblLocArray[i]);
+                    aLocAddr = aLocAddr + aTempLocAddr;
+
+                    if ((i + 1) < dblLocArray.length) {
+                        aLocAddr = aLocAddr + "/";
+                    }
+                }
+            }
+
+            //データ配信によるアップデートを一時抑制
+            IntervalUpdateLimit = 4;
+
+            var url = GetUrl() + "SP(" + aLocAddr + "," + inSpeed + "," + LocSpeedStep + ")";
+            $.get(url, function (data) {});
+
+            /*表示切り替え*/
+            onDrawMeter(40);
+            
+            /* 振動機能 */
+            if( (inSpeed == 0) && (gLastSpeed > 0))
+            {
+	            DEVICE_Vibrate();
+            }
+            
+            gLastSpeed = inSpeed;
+        }
+
+        function ChangeAcc(inNo) {
+
+            var aOnOff = AccStatus[inNo];
+
+            if (aOnOff == 1) {
+                aOnOff = 0;
+            } else {
+                aOnOff = 1;
+            }
+
+            AccStatus[inNo] = aOnOff;
+            var aAccAddr = parseInt(AccProtocol) + inNo + 1;
+            var url = GetUrl() + "TO(" + aAccAddr + "," + aOnOff + ")";
+
+            $.get(url, function (data) {});
+            
+        }
+
+        function onClickPon(inPon) {
+
+            
+            var url = GetUrl() + "PW(" + inPon + ")";
+
+            $.get(url, function (data) {});
+
+            gIntervalTimeout = 8;
+            
+            setVisibleItems(inPon);
+            
+            DEVICE_Vibrate();
+        }
+
+        // Canvas描画処理
+        function onDrawMeter(inScale) {
+
+            drawMeter(LocSpeed[modeLocIndex], inScale);
+
+        }
+
+
+        function drawMeterBackground(inScale) {
+
+            var canvas = document.getElementById("myCanvas");
+            var cv = canvas.getContext("2d");
+            var scale = inScale * 10
+            var center = {
+                x: scale / 2,
+                y: scale / 2
+            };
+            var hLen = scale * 0.8 / 2; // 針の長さ
+            var fSize = scale / 8; // フォントサイズ
+            var rLen = scale / 2;
+
+            CenterX = center.x;
+            CenterY = center.y;
+
+            // メーター背景の円描画
+            cvSize = document.getElementById("myCanvas").getAttribute("width");
+            cv.clearRect(0, 0, cvSize, cvSize);
+
+            //背景を白に描画
+            cv.fillStyle = "#FFFFFF";
+            cv.fillRect(0, 0, cvSize, cvSize);
+
+            //Draw meter
+            cv.beginPath();
+            cv.arc(center.x, center.y, scale / 2, 0, Math.PI * 2, false);
+            // グラデーション指定
+            var grad = cv.createRadialGradient(center.x / 1, center.y / 1, 0, center.x, center.y, scale / 2);
+            grad.addColorStop(0.00, "#202020");
+            grad.addColorStop(0.92, "#404040");
+            grad.addColorStop(0.95, "#0A0A0A");
+            grad.addColorStop(0.97, "#707070");
+            grad.addColorStop(1.00, "#8A8A8A");
+            cv.fillStyle = grad;
+            cv.fill();
+
+            // Canvasの色、フォント
+            cv.fillStyle = "#9F9F9F";
+
+
+            // メモリ表示
+            for (var i = 0; i <= 60; i++) {
+                var radian = ((270 / 60) * i + 135) * Math.PI / 180;
+                var xx = center.x + (rLen - 20) * Math.cos(radian);
+                var yy = center.y + (rLen - 20) * Math.sin(radian);
+
+                var aMemSize = 2;
+
+                if (i % 10 == 0) {
+                    aMemSize = 6;
+                }
+                else if (i % 5 == 0) {
+                    aMemSize = 4;
+                }                
+                else {
+                    //aMemSize = 2;
+                }
+
+
+                cv.beginPath();
+                cv.arc(xx, yy, aMemSize, 0, Math.PI * 2, false);
+                cv.fill();
+            }
+
+            // Canvasの色、フォント
+            cv.fillStyle = "#FFFFFF";
+            cv.font = "bold " + fSize * 0.55 + "px 'verdana'";
+            cv.shadowColor = '#9F9F9F';
+            cv.shadowOffsetX = 0;
+            cv.shadowOffsetY = 0;
+            cv.shadowBlur = 16;
+
+
+            // 文字盤表示
+            for (var i = 0; i <= 6; i++) {
+                var radian = ((270 / 6) * i + 135) * Math.PI / 180;
+                var xx = center.x + (hLen - 20) * Math.cos(radian) ;
+                var yy = center.y + (hLen - 20) * Math.sin(radian) + fSize / 4;
+                var aSpeedMeterText = Math.round(i * (LocMeterMaxSpeed / 6));
+                var aMetrics3 = cv.measureText(aSpeedMeterText);
+                cv.fillText(aSpeedMeterText, xx - (aMetrics3.width / 2), yy);
+            }
+
+            /*速度単位表示*/
+            cv.font = "bold " + fSize * 0.5 + "px 'verdana'";
+            var aMetrics2 = cv.measureText("km/h");
+            cv.fillText("km/h", center.x - (aMetrics2.width / 2), center.y + scale / 3.8);
+
+
+            CacheMeterBG.src = canvas.toDataURL('image/png');
+            CachedImage = 1;
+        }
+
+
+        function drawMeter(inSpeed, inScale) {
+            if (CachedImage == 0) {
+                drawMeterBackground(inScale);
+                CachedImage = 1;
+            }
+
+
+
+            var inValue = Math.round((inSpeed * 270) / 1023);
+
+            var canvas = document.getElementById("myCanvas");
+            var cv = canvas.getContext("2d");
+            var scale = inScale * 10
+            var center = {
+                x: scale / 2,
+                y: scale / 2
+            };
+            var hLen = scale * 0.8 / 2; // 針の長さ
+            var fSize = scale / 9; // フォントサイズ
+            var rLen = scale / 2;
+
+            CenterX = center.x;
+            CenterY = center.y;
+
+            //影は無効
+            cv.shadowBlur = 0;
+            cv.shadowColor = 'none';
+            cv.shadowOffsetX = 0;
+            cv.shadowOffsetY = 0;
+
+            // メーター背景の円描画
+            cvSize = document.getElementById("myCanvas").getAttribute("width");
+
+            //背景を白に描画
+            cv.fillStyle = "#FFFFFF";
+            //cv.fillRect(0,0, cvSize, cvSize);
+
+            //画像描画
+            cv.drawImage(CacheMeterBG, 0, 0);
+
+            // 値表示
+            cv.font = "bold " + fSize * 0.7 + "px 'verdana'";
+
+
+            cv.shadowColor = '#9F9F9F';
+            cv.shadowOffsetX = 0;
+            cv.shadowOffsetY = 0;
+            cv.shadowBlur = 16;
+
+            var aMetrics = cv.measureText(Math.round(inSpeed * LocMeterMaxSpeed / 1024));
+            cv.fillText(Math.round(inSpeed * LocMeterMaxSpeed / 1024), center.x - (aMetrics.width / 2), center.y +
+                scale / 5);
+
+            /* 進行方向表示 */
+            var aMetrics3 = cv.measureText(LocDir[modeLocIndex]);
+            cv.fillText(LocDir[modeLocIndex], center.x - (aMetrics3.width / 2), center.y + scale / 2.5);
+
+            /* 三角形を描く */
+            cv.beginPath();
+
+            if( LocDir[modeLocIndex] == "FWD")
+            {
+                cv.moveTo(center.x + 10, center.y + (scale / 2.5) - 30);
+                cv.lineTo(center.x +  0, center.y + (scale / 2.5) - 40);
+                cv.lineTo(center.x - 10, center.y + (scale / 2.5) - 30);
+            }
+            else
+            {
+                cv.moveTo(center.x + 10, center.y + (scale / 2.5) + 10);
+                cv.lineTo(center.x +  0, center.y + (scale / 2.5) + 20);
+                cv.lineTo(center.x - 10, center.y + (scale / 2.5) + 10);
+            }
+            cv.closePath();
+            /* 三角形を塗りつぶす */
+            cv.fill();
+
+            //影は無効
+            cv.shadowBlur = 0;
+            cv.shadowColor = 'none';
+            cv.shadowOffsetX = 0;
+            cv.shadowOffsetY = 0;
+
+            // 針(影)描画
+            var hRadian = (inValue + 135) * Math.PI / 180;
+            var pos_x = cPoint(center, rLen - 25, hRadian);
+            var a90deg = Math.PI / 2;
+            cv.strokeStyle = "#550000";
+            cv.lineWidth = scale / 50;
+            cv.beginPath();
+            cv.moveTo(center.x + 8 * Math.cos(hRadian - a90deg), center.y + 8 * Math.sin(hRadian - a90deg));
+            cv.lineTo(pos_x.x, pos_x.y);
+            cv.lineTo(center.x + 8 * Math.cos(hRadian + a90deg), center.y + 8 * Math.sin(hRadian + a90deg));
+            cv.closePath();
+            cv.stroke();
+
+            // 針(中心)描画
+            cv.strokeStyle = "#FF5555";
+            cv.fillStyle = "#FF5555";
+            cv.lineWidth = scale / 100;
+            cv.beginPath();
+            cv.moveTo(center.x + 8 * Math.cos(hRadian - a90deg), center.y + 8 * Math.sin(hRadian - a90deg));
+            cv.lineTo(pos_x.x, pos_x.y);
+            cv.lineTo(center.x + 8 * Math.cos(hRadian + a90deg), center.y + 8 * Math.sin(hRadian + a90deg));
+            cv.closePath();
+            cv.stroke();
+            cv.fill();
+
+            //メータの中心円を書く
+            // グラデーション指定
+            var grad2 = cv.createRadialGradient(center.x / 1, center.y / 1, 0, center.x, center.y, scale / 20);
+            grad2.addColorStop(0.00, "#505050");
+            grad2.addColorStop(0.95, "#515151");
+            grad2.addColorStop(1.00, "#707070");
+            cv.fillStyle = grad2;
+            //cv.fillStyle = 'rgb(50, 50, 50)';
+            cv.beginPath();
+            cv.arc(center.x, center.y, scale / 20, 0, Math.PI * 2, false);
+            cv.closePath();
+            cv.fill();
+
+            // 光沢を付ける（半透明の円描画）
+            cv.fillStyle = 'rgba(255, 255, 255, 0.07)';
+            cv.beginPath();
+            cv.arc(center.x, center.y / 20, scale / 1.5, 0, Math.PI * 2, false);
+            cv.closePath();
+            cv.fill();
+
+            //cv.restore();
+        }
+
+        // 針先端の座標取得
+        var cPoint = function (center, hookLength, radian) {
+            return {
+                x: center.x + hookLength * Math.cos(radian),
+                y: center.y + hookLength * Math.sin(radian)
+            };
+        }
+
+        function onTouchCanvas(e) {
+
+            e.preventDefault();
+
+            var touchObject = e.changedTouches[0];
+            var touchX = touchObject.pageX;
+            var touchY = touchObject.pageY;
+
+            // 要素の位置を取得
+            var clientRect = e.target.getBoundingClientRect();
+            var positionX = clientRect.left + window.pageXOffset;
+            var positionY = clientRect.top + window.pageYOffset;
+
+            // 要素内におけるタッチ位置を計算
+            var x = touchX - positionX;
+            var y = touchY - positionY;
+
+            var rx = x - CenterX;
+            var ry = y - CenterY;
+
+            CalcSpeedMeter(rx, ry);
+
+
+            var date = new Date();
+
+            if (Math.abs(date.getTime() - LastUpdateTime) >= 500) {
+                if (LastLocSpeed[modeLocIndex] != LocSpeed[modeLocIndex]) {
+                    //前回より500ms経過時
+                    onChangeSpeed(LocSpeed[modeLocIndex]);
+                    LastLocSpeed[modeLocIndex] = LocSpeed[modeLocIndex];
+                }
+
+                LastUpdateTime = date.getTime();
+            } else {
+                /*表示のみ（速度を送信しない）*/
+                onDrawMeter(40);
+            }
+        }
+
+        function onTouchCanvasDown(e) {
+
+            if (PowerStatus == 0) {
+                return;
+            } else {
+                LastUpdateTime = 0;
+                LastLocSpeed[modeLocIndex] = -1;
+                stateMeterMoving = 1;
+                onTouchCanvas(e);
+            }
+        }
+
+        function onTouchCanvasMove(e) {
+
+            if (stateMeterMoving == 0) {
+                return;
+            } else {
+                onTouchCanvas(e);
+            }
+        }
+
+        function onTouchCanvasUp(e) {
+
+            if (PowerStatus == 0) {
+                return;
+            } else {
+                LastUpdateTime = 0;
+                LastLocSpeed[modeLocIndex] = -1;
+                stateMeterMoving = 0;
+                onTouchCanvas(e);
+            }
+        }
+
+
+        function onClickCanvas(e) {
+
+            e.preventDefault();
+
+            var rect = e.target.getBoundingClientRect();
+
+            var x = e.clientX - rect.left;
+            var y = e.clientY - rect.top;
+
+            var rx = x - CenterX;
+            var ry = y - CenterY;
+
+            CalcSpeedMeter(rx, ry);
+
+            var date = new Date();
+
+
+            if (Math.abs(date.getTime() - LastUpdateTime) >= 500) {
+                if (LastLocSpeed[modeLocIndex] != LocSpeed[modeLocIndex]) {
+                    //前回より500ms経過時
+                    onChangeSpeed(LocSpeed[modeLocIndex]);
+                    LastLocSpeed[modeLocIndex] = LocSpeed[modeLocIndex];
+                }
+
+                LastUpdateTime = date.getTime();
+            } else {
+                /*表示のみ（速度を送信しない）*/
+                onDrawMeter(40);
+            }
+        }
+
+        function onClickCanvasDown(e) {
+
+
+            if (PowerStatus == 0) {
+                return;
+            } else {
+                LastUpdateTime = 0;
+                LastLocSpeed[modeLocIndex] = -1;
+                stateMeterMoving = 1;
+                onClickCanvas(e);
+            }
+        }
+
+        function onClickCanvasMove(e) {
+
+            if (stateMeterMoving == 0) {
+                return;
+            } else {
+                onClickCanvas(e);
+            }
+        }
+
+        function onClickCanvasUp(e) {
+
+            if (PowerStatus == 0) {
+                return;
+            } else {
+                LastUpdateTime = 0;
+                LastLocSpeed[modeLocIndex] = -1;
+                stateMeterMoving = 0;
+                onClickCanvas(e);
+            }
+        }
+
+        function CalcSpeedMeter(rx, ry) {
+
+            var aR = Math.sqrt(rx * rx + ry * ry);
+
+            if ((aR < 40) || (aR > 200)) {
+                /* 円の内側および外側は無視する */
+                return;
+            }
+
+            var aTheta = Math.atan2(ry, rx) + Math.PI;
+
+            var aTheta_r = (aTheta * 180 / Math.PI);
+
+
+            /* 10deg以上ずれている場合は無視する処理とする */
+            if ((aTheta_r < 300) && (aTheta_r > 240)) {
+                return;
+            }
+
+            /* 225deg - 315degは無効範囲。 */
+
+            /* 許容範囲の調整(0speed) */
+            if ((aTheta_r <= 320) && (aTheta_r >= 300)) {
+                aTheta_r = 315;
+            }
+
+            /* 許容範囲の調整(max speed) */
+            if ((aTheta_r >= 220) && (aTheta_r <= 240)) {
+                aTheta_r = 225;
+            }
+
+            /* 正規化 */
+            if (aTheta_r > 300) {
+                aTheta_r = aTheta_r - 360 + 45;
+
+            } else {
+                aTheta_r = aTheta_r + 45;
+
+            }
+
+            //alert(aTheta_r);
+
+            /* 角度から速度値に換算（精度を32dずつにわざと落として処理軽量化） */
+            LocSpeed[modeLocIndex] = Math.round((aTheta_r) * 1024 / 270);
+
+        };
+
+        function onLoad() {
+            //タッチイベントの追加
+            var canvas = document.getElementById("myCanvas");
+            canvas.addEventListener("mousedown", onClickCanvasDown);
+            canvas.addEventListener("mousemove", onClickCanvasMove);
+            canvas.addEventListener("mouseup", onClickCanvasUp);
+
+            canvas.addEventListener("touchstart", onTouchCanvasDown);
+            canvas.addEventListener("touchmove", onTouchCanvasMove);
+            canvas.addEventListener("touchend", onTouchCanvasUp);
+
+
+            onDrawMeter(40);
+            DrawAccPanel();
+        };
+
+
+        //画像を事前にロード
+        var imageACC_LS = new Image();
+        imageACC_LS.src = "/SD_WLAN/c/acc/TURNOUT_LEFT_1.png";
+        var imageACC_LD = new Image();
+        imageACC_LD.src = "/SD_WLAN/c/acc/TURNOUT_LEFT_2.png";
+        var imageACC_RS = new Image();
+        imageACC_RS.src = "/SD_WLAN/c/acc/TURNOUT_RIGHT_1.png";
+        var imageACC_RD = new Image();
+        imageACC_RD.src = "/SD_WLAN/c/acc/TURNOUT_RIGHT_2.png";
+        
+        var imageACC_DSSS = new Image();
+        imageACC_DSSS.src = "/SD_WLAN/c/acc/DBLSLIPSWITCH_1.png";
+        var imageACC_DSSD = new Image();
+        imageACC_DSSD.src = "/SD_WLAN/c/acc/DBLSLIPSWITCH_2.png";
+        var imageACC_371S = new Image();
+        imageACC_371S.src = "/SD_WLAN/c/acc/SIGNAL_76371_BLACK.png";
+        var imageACC_371D = new Image();
+        imageACC_371D.src = "/SD_WLAN/c/acc/SIGNAL_76371_RED.png";
+        var imageACC_391S = new Image();
+        imageACC_391S.src = "/SD_WLAN/c/acc/SIGNAL_76391_GREEN.png";
+        var imageACC_391D = new Image();
+        imageACC_391D.src = "/SD_WLAN/c/acc/SIGNAL_76391_RED.png";
+
+        function DrawAccPanel() {
+
+            var canvas = document.getElementById("accCanvas");
+            var cv = canvas.getContext("2d");
+
+            canvas.addEventListener("mousedown", onClickAccCanvas);
+
+            //cv.save();
+
+            // メーター背景の円描画
+            cvSize = document.getElementById("accCanvas").getAttribute("width");
+            cv.clearRect(0, 0, cvSize, cvSize);
+
+            // Canvasの色、フォント
+            cv.font = "16px 'arial'";
+
+            // ポイント表示
+            for (var y = 0; y < 4; y++) {
+                for (var x = 0; x < 10; x++) {
+
+                    var xx = x * 90 + 1;
+                    var yy = y * 91 + 1;
+                    var index = (y + AccPageNo * 4) * 10 + x;
+
+                    cv.shadowBlur = 0;
+                    cv.fillStyle = '#EFEFEF';
+                    cv.strokeStyle = '#8F8F8F';
+                    cv.beginPath();
+                    cv.moveTo(xx, yy);
+                    cv.lineTo(xx + 80, yy);
+                    cv.lineTo(xx + 80, yy + 88);
+                    cv.lineTo(xx, yy + 88);
+                    cv.lineWidth = "1px";
+                    cv.lineCap = "round";
+                    cv.closePath();
+                    cv.fill();
+                    cv.stroke();
+
+                    // グラデーション指定
+                    //
+                    //
+                    cv.shadowColor = '#9F9F9F';
+                    cv.shadowOffsetX = 0;
+                    cv.shadowOffsetY = 0;
+                    cv.shadowBlur = 8;
+
+
+                    var aImageNo = AccTypes[index] * 10 + AccStatus[index];
+
+                    //異常系はデフォルト表示にする
+                    if (aImageNo > 51) {
+                        aImageNo = AccStatus[index];
+                    }
+
+                    switch (aImageNo) {
+                        case 0:
+                            cv.beginPath();
+                            cv.arc(xx + 40, yy + 55, 24, 0, Math.PI * 2, false);
+                            cv.fillStyle = "red";
+                            cv.fill();
+                            break;
+
+                        case 1:
+                            cv.beginPath();
+                            cv.arc(xx + 40, yy + 55, 24, 0, Math.PI * 2, false);
+                            cv.fillStyle = "green";
+                            cv.fill();
+                            break;
+                        case 10:
+                            //left diverse
+                            cv.drawImage(imageACC_LD, xx + 25, yy + 22, 32, 64);
+                            break;
+                        case 11:
+                            //left straight
+                            cv.drawImage(imageACC_LS, xx + 25, yy + 22, 32, 64);
+                            break;
+                        case 20:
+                            //Right diverse
+                            cv.drawImage(imageACC_RD, xx + 25, yy + 22, 32, 64);
+                            break;
+                        case 21:
+                            //Right straight
+                            cv.drawImage(imageACC_RS, xx + 25, yy + 22, 32, 64);
+                            break;
+                        case 30:
+                            //Double slip diverse
+                            cv.drawImage(imageACC_DSSD, xx + 25, yy + 22, 32, 64);
+                            break;
+                        case 31:
+                            //Double slip straight
+                            cv.drawImage(imageACC_DSSS, xx + 25, yy + 22, 32, 64);
+                            break;
+                        case 40:
+                            //Signal diverse
+                            cv.drawImage(imageACC_371D, xx + 25, yy + 22, 32, 64);
+                            break;
+                        case 41:
+                            //Signal straight
+                            cv.drawImage(imageACC_371S, xx + 25, yy + 22, 32, 64);
+                            break;
+                        case 50:
+                            //Signal diverse
+                            cv.drawImage(imageACC_391D, xx + 25, yy + 22, 32, 64);
+                            break;
+                        case 51:
+                            //Signal straight
+                            cv.drawImage(imageACC_391S, xx + 25, yy + 22, 32, 64);
+                            break;
+                    }
+
+                    cv.fillStyle = "#000000";
+                    cv.fillText(index + 1, xx + 5, yy + 20);
+                }
+
+            }
+
+
+
+
+            //cv.restore();
+
+        };
+
+        function onClickAccPage(inPageCmd) {
+            if (inPageCmd == 1) {
+                AccPageNo++;
+                if (AccPageNo > 50) {
+                AccPageNo = 0;
+            }
+
+            } else {
+
+                if( AccPageNo == 0)
+                {
+                    AccPageNo = 50;
+                }
+                else
+                {
+                    AccPageNo--;
+                }
+            }
+
+            DrawAccPanel();
+
+        };
+
+        function onClickAccCanvas(e) {
+
+            if ((PowerStatus == 0) && (modeAccEdit == 0)) {
+                return;
+            }
+
+            e.preventDefault();
+
+            var rect = e.target.getBoundingClientRect();
+
+            var x = e.clientX - rect.left;
+            var y = e.clientY - rect.top;
+            var xx = Math.floor(x / 90);
+            var yy = Math.floor(y / 91);
+
+
+            var index = (AccPageNo * 4 + yy) * 10 + xx;
+
+            switch(modeAccEdit)
+            {
+                case 0:
+                   ChangeAcc(index);
+                break;
+
+                case 1:
+                    if( AccTypes[index] < 5)
+                    {
+                        AccTypes[index] = AccTypes[index] + 1;
+                    }
+                    else
+                    {
+                        AccTypes[index] = 0;
+                    }
+                break;
+            }
+
+            DrawAccPanel();
+
+
+        }
+
+        var isTouch = ('ontouchstart' in window);
+
+        $('#accCanvas').bind({
+            'touchstart mousedown': function (e) {
+                e.preventDefault();
+                this.pageX = (isTouch ? event.changedTouches[0].pageX : e.pageX);
+                this.pageY = (isTouch ? event.changedTouches[0].pageY : e.pageY);
+
+
+            },
+            'touchmove mousemove': function (e) {
+                e.preventDefault();
+            },
+            'touchend mouseup': function (e) {}
+        });
+
+
+        function onConfigMaxSpeed() {
+
+            LocMeterMaxSpeed = $("#maxspeed_slider").slider('value') * 60;
+            $("#maxspeed_label").text(LocMeterMaxSpeed);
+
+            STORE_Save_MaxSpeed();
+            
+            //Background readraw
+            drawMeterBackground(40);
+            
+            // Pin readraw
+            onDrawMeter(40);
+        }
+        
+        
+        function onSoundPlay(inNo)
+        {
+            switch(inNo)
+            {
+            case 1:
+                playFile("/SD_WLAN/sounds/0001.mp3");
+                break;
+            case 2:
+                playFile("/SD_WLAN/sounds/0002.mp3");
+                break;
+            case 3:
+                playFile("/SD_WLAN/sounds/0003.mp3");
+                break;
+            }
+         }
+
+		function UpdateFunctionButtonsAll(inIndex)
+		{
+            $("#check0").prop("checked", (LocFuncStatus[inIndex][0] == 1) ? true : false).change();
+            $("#check1").prop("checked", (LocFuncStatus[inIndex][1] == 1) ? true : false).change();
+            $("#check2").prop("checked", (LocFuncStatus[inIndex][2] == 1) ? true : false).change();
+            $("#check3").prop("checked", (LocFuncStatus[inIndex][3] == 1) ? true : false).change();
+            $("#check4").prop("checked", (LocFuncStatus[inIndex][4] == 1) ? true : false).change();
+            $("#check5").prop("checked", (LocFuncStatus[inIndex][5] == 1) ? true : false).change();
+            $("#check6").prop("checked", (LocFuncStatus[inIndex][6] == 1) ? true : false).change();
+            $("#check7").prop("checked", (LocFuncStatus[inIndex][7] == 1) ? true : false).change();
+            $("#check8").prop("checked", (LocFuncStatus[inIndex][8] == 1) ? true : false).change();
+            $("#check9").prop("checked", (LocFuncStatus[inIndex][9] == 1) ? true : false).change();
+            $("#check10").prop('checked', (LocFuncStatus[inIndex][10] == 1) ? true : false).change();
+            $('#check11').prop('checked', (LocFuncStatus[inIndex][11] == 1) ? true : false).change();
+            $('#check12').prop('checked', (LocFuncStatus[inIndex][12] == 1) ? true : false).change();
+            $('#check13').prop('checked', (LocFuncStatus[inIndex][13] == 1) ? true : false).change();
+            $('#check14').prop('checked', (LocFuncStatus[inIndex][14] == 1) ? true : false).change();
+            $('#check15').prop('checked', (LocFuncStatus[inIndex][15] == 1) ? true : false).change();
+            $('#check16').prop('checked', (LocFuncStatus[inIndex][16] == 1) ? true : false).change();
+            $('#check17').prop('checked', (LocFuncStatus[inIndex][17] == 1) ? true : false).change();
+            $('#check18').prop('checked', (LocFuncStatus[inIndex][18] == 1) ? true : false).change();
+            $('#check19').prop('checked', (LocFuncStatus[inIndex][19] == 1) ? true : false).change();
+            $('#check20').prop('checked', (LocFuncStatus[inIndex][20] == 1) ? true : false).change();
+            $('#check21').prop('checked', (LocFuncStatus[inIndex][21] == 1) ? true : false).change();
+            $('#check22').prop('checked', (LocFuncStatus[inIndex][22] == 1) ? true : false).change();
+            $('#check23').prop('checked', (LocFuncStatus[inIndex][23] == 1) ? true : false).change();
+            $('#check24').prop('checked', (LocFuncStatus[inIndex][24] == 1) ? true : false).change();
+            $('#check25').prop('checked', (LocFuncStatus[inIndex][25] == 1) ? true : false).change();
+            $('#check26').prop('checked', (LocFuncStatus[inIndex][26] == 1) ? true : false).change();
+            $('#check27').prop('checked', (LocFuncStatus[inIndex][27] == 1) ? true : false).change();
+            $('#check28').prop('checked', (LocFuncStatus[inIndex][28] == 1) ? true : false).change();
+        }
+
+        function onSelectLoc() {
+            modeLocIndex = $("[name=radio_adr]:checked").val();
+
+
+            //ファンクションボタンを全て変更する
+			UpdateFunctionButtonsAll(modeLocIndex);
+			
+            $('#checkDirReverse').prop('checked', (LocDirReverse[modeLocIndex] == 1) ? true : false).change();
+
+
+            //メーター表示を更新
+            onChangeSpeed(LocSpeed[modeLocIndex]);
+        }
+
+        function onSetAccEdit(){
+            if (modeAccEdit == 0) {
+                modeAccEdit = 1;
+            } else {
+                modeAccEdit = 0;
+
+                //操作モードに戻すときに保存
+                STORE_Save_TypeImagesAcc();
+            }
+        }
+
+        function onSetDoubleHeading() {
+            if (modeDblHeading == 0) {
+                modeDblHeading = 1;
+            } else {
+                modeDblHeading = 0;
+            }
+        }
+
+
+        function onSetDirReverse() {
+
+            if (LocDirReverse[modeLocIndex] == 0) {
+                LocDirReverse[modeLocIndex] = 1;
+            } else {
+                LocDirReverse[modeLocIndex] = 0;
+            }
+        }
+
+
+        function reverseDir(inDir) {
+            if (inDir == 1) {
+                return 2;
+            } else {
+                return 1;
+            }
+        }
+
+        function onClickAddLoc() {
+            /* 重連編集画面 */
+
+            //Set DblAddr to LocEditForm
+            $(DblAddr).val(dblLocArray[modeLocIndex]);
+
+
+            $(function () {
+                $('p').css({
+                    'display': 'block'
+                });
+                $("#dialogAL").dialog({
+                    dialogClass: 'LocEditDlgClass',
+                    autoOpen: false,
+                    show: "fade",
+                    hide: "fade",
+                    maxWidth: 600,
+                    maxHeight: 320,
+                    width: 560,
+                    height: 300,
+                    modal: true,
+                    buttons: {
+                        "0": function () {
+                            $(DblAddr).val($(DblAddr).val() + "0");
+                        },
+                        "1": function () {
+                            $(DblAddr).val($(DblAddr).val() + "1");
+                        },
+                        "2": function () {
+                            $(DblAddr).val($(DblAddr).val() + "2");
+                        },
+                        "3": function () {
+                            $(DblAddr).val($(DblAddr).val() + "3");
+                        },
+                        "4": function () {
+                            $(DblAddr).val($(DblAddr).val() + "4");
+                        },
+                        "5": function () {
+                            $(DblAddr).val($(DblAddr).val() + "5");
+                        },
+                        "6": function () {
+                            $(DblAddr).val($(DblAddr).val() + "6");
+                        },
+                        "7": function () {
+                            $(DblAddr).val($(DblAddr).val() + "7");
+                        },
+                        "8": function () {
+                            $(DblAddr).val($(DblAddr).val() + "8");
+                        },
+                        "9": function () {
+                            $(DblAddr).val($(DblAddr).val() + "9");
+                        },
+                        "CLR": function () {
+                            $(DblAddr).val("");
+                        },
+
+
+                        "OK": function () {
+                            var aDblLocText = $(DblAddr).val();
+
+                            if (aDblLocText == "") {
+                                aDblLocText = "3";
+                            } else {
+
+                            }
+
+                            //変数にセット
+                            dblLocArray[modeLocIndex] = aDblLocText;
+                            
+                            if (modeLocIndex == 0) {
+                                $(radio_adr1_label).text(aDblLocText);
+                            }
+                            else if (modeLocIndex == 1) {
+                                $(radio_adr2_label).text(aDblLocText);
+                            }
+                            else if (modeLocIndex == 2) {
+                                $(radio_adr3_label).text(aDblLocText);
+                            }
+                            else if (modeLocIndex == 3) {
+                                $(radio_adr4_label).text(aDblLocText);
+                            }
+
+                            //保存
+                            STORE_Save_LocAddr();
+
+                            $(this).dialog('close');
+                        }
+                    }
+                }).css("font-size", "1.5em");
+
+                $("#dialogAL").dialog("open");
+            });
+        }
+
+
+
+
+
+        $(function () {
+            
+            setInterval(function () {
+
+                //定周期状態確認
+                SHRAM_getStatus();
+
+                var aReplyStrArray = g_RecvStatusRaw.split(";");
+                
+                //DSairの共有メモリ・応答フレームデータ
+                if( aReplyStrArray.length <= 1)
+                {
+                    return;
+                }                  
+                
+                var aPrmStrArray = aReplyStrArray[0].split(",");
+
+                if( aPrmStrArray.length == 0)
+                {
+                    return;
+                }
+                
+                if (gIntervalTimeout > 0) {
+                    gIntervalTimeout--;
+                } else {
+                    var aPower = aPrmStrArray[0];
+
+                    if (aPower != "") {
+
+                        var aPower_Num = 0;
+
+                        if (aPower == "Y") {
+                            aPower_Num = 1;
+                        }
+
+                        if (aPower_Num != PowerStatus) {
+                            PowerStatus = aPower_Num;
+                            setVisibleItems(parseInt(aPower_Num));
+                        }
+                    }
+                }
+
+                //N,2,0,0,043,06,0
+                //画面に表示
+                $(status_volt).text("Track Voltage: " + String(Number(aPrmStrArray[4]) / 10) + "[V]") ;
+                $(status_current).text("Out Current: " + String(Number(aPrmStrArray[5]) / 10) + "[A]");
+                $(status_power).text("Track Power: " + (aPrmStrArray[0] == "Y" ? "ON" : "OFF"));
+                $(status_firmver).text("Firmware: ver." + aPrmStrArray[2]);
+                $(status_error).text("Error: " + DEVICE_ErrorString(Number(aPrmStrArray[1])));
+                $(status_hardver).text("Hardware: " + DEVICE_HWnameString(Number(aPrmStrArray[6])));
+                $(status_seqno).text("Alive Seq: " + aPrmStrArray[7]);
+                
+              
+                $(status_replymsg).text("Reply Msg: " + aReplyStrArray[1]);
+                $(status_replyacc).text("Acc Datas: " + aReplyStrArray[2]);
+                
+                
+                //読み出したCV値
+                
+                
+                var aCvStrArray = aReplyStrArray[1].split(",");
+               
+                if( (Number(aCvStrArray[1]) != 0) && (aCvStrArray.length > 1))
+                {
+	                gReadCVNo = Number(aCvStrArray[1]);
+	                gReadCVVal = Number(aCvStrArray[2]);
+	                
+	                $(ReadCVValue).text("CV" + gReadCVNo + "=" + gReadCVVal);
+	            }
+	            else
+	            {
+	            	
+	                $(ReadCVValue).text("---");
+	            }
+	            
+	            //機関車の配信データ取得
+	            
+	            var aLocDistArrayRaw = aReplyStrArray[3].split("/");
+	            
+	            for( var i = 0; i < 8; i++)
+	            {
+	            	var aLocDistArrayList = aLocDistArrayRaw[i].split(",");
+	            	var aLocAddr = parseInt("0x" + aLocDistArrayList[0]);
+	            	var aLocSpd = parseInt("0x" + aLocDistArrayList[1]);
+	            	var aLocDir = (aLocDistArrayList[2] == "0") ? "FWD" : "REV";
+	            	var aLocFunc = parseInt("0x" + aLocDistArrayList[3]);
+	            	
+	            	if( aLocAddr == 0)
+	            	{
+	            		break;
+	            	}
+	            	
+	            	for( var j = 0; j < 4; j++)
+	            	{
+		            	if( aLocAddr == parseInt(LocProtocol) + parseInt(dblLocArray[j]))
+		            	{
+		            		if( j == modeLocIndex)
+		            		{
+		            			//操作中で操作した直後は、4回空回しする
+		            			
+		            			if( IntervalUpdateLimit > 0)
+		            			{
+		            				IntervalUpdateLimit--;
+		            				break;
+		            			}
+		            			
+		            		}
+		            		
+		            		var aMeterChanged = 0;
+		            		var aFuncChanged = 0;
+		            		
+		            		if( LocDir[j] != aLocDir)
+		            		{
+		            			aMeterChanged = 1;
+		            			LocDir[j] = aLocDir;
+		            		}
+		            		
+		            		if( (LocSpeed[j] / 4) != aLocSpd)
+		            		{
+		            			aMeterChanged = 1;
+		            			LocSpeed[j] = aLocSpd * 4;
+		            		}
+		            		
+		            		for( var k = 0; k < 29; k++)
+		            		{
+		            			
+		            			if( LocFuncStatus[j][k] != (aLocFunc >> k) & 1)
+		            			{
+		            				LocFuncStatus[j][k] = (aLocFunc >> k) & 1;
+		            				aFuncChanged = 1;
+		            			}
+		            		}
+		            		
+		            		
+		            		//表示中の場合は更新
+		            		if( j == modeLocIndex)
+		            		{
+			            		if( aFuncChanged == 1)
+			            		{
+			            			UpdateFunctionButtonsAll(modeLocIndex);
+			            		}
+			            		
+			            		if( aMeterChanged == 1)
+			            		{
+									onDrawMeter(40);
+			            		}
+			            		
+		            		}
+		            		
+		            		break;
+		            	}
+	            	}
+	            	
+	            }
+                
+                
+                console.log(g_RecvStatusRaw);
+                
+            }, 900);
+            
+            
+        });
+    </script>
+</head>
+
+<body onload="onLoad()" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);" translate="no">
+
+    <div id="dialogAL" title="Input dialog">
+        <form>
+            <p id="dialogAL_msg">
+                <input name="DblAddr" type="text" id="DblAddr" readonly="readonly" />
+            </p>
+        </form>
+    </div>
+
+    <div id="dialogMsg" title="Information">
+        <form>
+            <p style="display:none;" id="dialogMsg_msg">
+                <b>Map Data Saved!</b>
+            </p>
+        </form>
+    </div>
+    
+    <div id="dialogCVInfo" title="CV Information">
+        <form>
+            <p style="display:none;" id="dialogCVInfo_msg">
+                Please <b>power off</b>.
+            </p>
+        </form>
+    </div>
+
+    <div id="tabcontrol" style='clear:both;padding:0px;'>
+        <ul id="tabcontrol">
+            <li>
+                <a href="#tab-cab"><span class="ui-icon ui-icon-play"></span> Cab</a>
+            </li>
+            <li>
+                <a href="#tab-acc"><span class="ui-icon ui-icon-shuffle"></span> Accessory</a>
+            </li>
+            <li>
+                <a href="#tab-map"><span class="ui-icon ui-icon-pencil"></span> Layout</a>
+            </li>
+            <li>
+                <a href="#tab-cv"><span class="ui-icon ui-icon-info"></span> CV</a>
+            </li>
+            <li>
+                <a href="#tab-cfg"><span class="ui-icon ui-icon-wrench"></span> Config</a>
+            </li>
+            <li>
+                <a href="#tab-sta"><span class="ui-icon ui-icon-wrench"></span> Status</a>
+            </li>
+        </ul>
+        <div id="detail">
+        <div id="tab-cab" style="width:900px;height:410px;padding:2px;">
+
+            <div id="funcbox1">
+                <input type="checkbox" id="check0" onclick="onClickFunction(0)"></input>
+                <label for="check0" style="font-size:1.5em;width:75px;"><span class="ui-icon ui-icon-lightbulb" style="font-size:1em;"></span>F0 </label>
+                <input type="checkbox" id="check1" onclick="onClickFunction(1)">
+                <label for="check1" style="font-size:1.5em;width:75px;">F1 </label>
+                <input type="checkbox" id="check2" onclick="onClickFunction(2)">
+                <label for="check2" style="font-size:1.5em;width:75px;">F2 </label>
+                <input type="checkbox" id="check3" onclick="onClickFunction(3)">
+                <label for="check3" style="font-size:1.5em;width:75px;">F3 </label>
+                <input type="checkbox" id="check4" onclick="onClickFunction(4)">
+                <label for="check4" style="font-size:1.5em;width:75px;">F4 </label>
+                <input type="checkbox" id="check5" onclick="onClickFunction(5)">
+                <label for="check5" style="font-size:1.5em;width:75px;">F5 </label>
+                <input type="checkbox" id="check6" onclick="onClickFunction(6)">
+                <label for="check6" style="font-size:1.5em;width:75px;">F6 </label>
+                <input type="checkbox" id="check7" onclick="onClickFunction(7)">
+                <label for="check7" style="font-size:1.5em;width:75px;">F7 </label>
+                <input type="checkbox" id="check8" onclick="onClickFunction(8)">
+                <label for="check8" style="font-size:1.5em;width:75px;">F8 </label>
+                <input type="checkbox" id="check9" onclick="onClickFunction(9)">
+                <label for="check9" style="font-size:1.5em;width:75px;">F9 </label>
+                <input type="checkbox" id="check10" onclick="onClickFunction(10)">
+                <label for="check10" style="font-size:1.5em;width:75px;">F10</label>
+                <input type="checkbox" id="check11" onclick="onClickFunction(11)">
+                <label for="check11" style="font-size:1.5em;width:75px;">F11</label>
+                <input type="checkbox" id="check12" onclick="onClickFunction(12)">
+                <label for="check12" style="font-size:1.5em;width:75px;">F12</label>
+                <input type="checkbox" id="check13" onclick="onClickFunction(13)">
+                <label for="check13" style="font-size:1.5em;width:75px;">F13</label>
+                <input type="checkbox" id="check14" onclick="onClickFunction(14)">
+                <label for="check14" style="font-size:1.5em;width:75px;">F14</label>
+                <input type="checkbox" id="check15" onclick="onClickFunction(15)">
+                <label for="check15" style="font-size:1.5em;width:75px;">F15</label>
+                <input type="checkbox" id="check16" onclick="onClickFunction(16)">
+                <label for="check16" style="font-size:1.5em;width:75px;">F16</label>
+                <input type="checkbox" id="check17" onclick="onClickFunction(17)">
+                <label for="check17" style="font-size:1.5em;width:75px;">F17</label>
+                <input type="checkbox" id="check18" onclick="onClickFunction(18)">
+                <label for="check18" style="font-size:1.5em;width:75px;">F18</label>
+                <input type="checkbox" id="check19" onclick="onClickFunction(19)">
+                <label for="check19" style="font-size:1.5em;width:75px;">F19</label>
+				<input type="checkbox" id="check20" onclick="onClickFunction(20)">
+				<label for="check20" style="font-size:1.5em;width:75px;">F20</label>
+				<input type="checkbox" id="check21" onclick="onClickFunction(21)">
+				<label for="check21" style="font-size:1.5em;width:75px;">F21</label>
+				<input type="checkbox" id="check22" onclick="onClickFunction(22)">
+				<label for="check22" style="font-size:1.5em;width:75px;">F22</label>
+				<input type="checkbox" id="check23" onclick="onClickFunction(23)">
+				<label for="check23" style="font-size:1.5em;width:75px;">F23</label>
+				<input type="checkbox" id="check24" onclick="onClickFunction(24)">
+				<label for="check24" style="font-size:1.5em;width:75px;">F24</label>
+				<input type="checkbox" id="check25" onclick="onClickFunction(25)">
+				<label for="check25" style="font-size:1.5em;width:75px;">F25</label>
+				<input type="checkbox" id="check26" onclick="onClickFunction(26)">
+				<label for="check26" style="font-size:1.5em;width:75px;">F26</label>
+				<input type="checkbox" id="check27" onclick="onClickFunction(27)">
+				<label for="check27" style="font-size:1.5em;width:75px;">F27</label>
+				<input type="checkbox" id="check28" onclick="onClickFunction(28)">
+				<label for="check28" style="font-size:1.5em;width:75px;">F28</label>
+			</div>
+
+            <div id="meter" style="margin:2px 18px 2px 2px;float:left;">
+                <canvas id="myCanvas" width="400" height="400" style="background-color:#FFFFFF;"></canvas>
+            </div>
+
+            <div style="float:left;margin:2px;">
+
+                <button id="powerOn" onclick="onClickPon(1)" style="font-size:1.5em;">
+                    <span class="ui-icon ui-icon-power" style="font-size:1em;"></span>PowerOn</button>
+                <button id="powerOff" onclick="onClickPon(0)" style="font-size:1.5em;">
+                    <span class="ui-icon ui-icon-power" style="font-size:1em;"></span>PowerOff</button>
+
+                <p>
+                    <div id="addrselector">
+                        <input type="radio" id="radio_adr1" name="radio_adr" onclick="onSelectLoc()" value="0" checked="checked" />
+                        <label for="radio_adr1" id="radio_adr1_label">3</label>
+                        <input type="radio" id="radio_adr2" name="radio_adr" onclick="onSelectLoc()" value="1" />
+                        <label for="radio_adr2" id="radio_adr2_label"></label>
+                        <br/>
+                        <input type="radio" id="radio_adr3" name="radio_adr" onclick="onSelectLoc()" value="2" />
+                        <label for="radio_adr3" id="radio_adr3_label"></label>
+                        <input type="radio" id="radio_adr4" name="radio_adr" onclick="onSelectLoc()" value="3" />
+                        <label for="radio_adr4" id="radio_adr4_label"></label>
+                    </div>
+                </p>
+
+                <p>
+                    <button id="btnAddLoc" onclick="onClickAddLoc()">
+                        <span class="ui-icon ui-icon-gear" style="font-size:1.2em;"></span>Edit</button>
+
+                    <input type="checkbox" id="checkDblHeading" onclick="onSetDoubleHeading()">
+                    <label for="checkDblHeading"><span class="ui-icon ui-icon-seek-next"></span>DblHead</label>
+
+                </p>
+
+                <p>
+                    <button id="btnStop" onclick="onClickStop()" style="font-size:1.5em;">
+                        <span class="ui-icon ui-icon-alert" style="font-size:1em;"></span>STOP</button>
+                </p>
+
+                <p>
+                    <button id="btnRev" onclick="onClickFwd(2)">
+                        <span class="ui-icon ui-icon-triangle-1-s" style="font-size:1.5em;"></span>R</button>
+                    <button id="btnFwd" onclick="onClickFwd(1)">
+                        <span class="ui-icon ui-icon-triangle-1-n" style="font-size:1.5em;"></span>F</button>
+                    <input type="checkbox" id="checkDirReverse" onclick="onSetDirReverse()">
+                    <label for="checkDirReverse">
+                        <span class="ui-icon ui-icon-transferthick-e-w" style="font-size:1em;"></span>
+                    </label>
+                </p>
+
+
+                <p id="logo">
+                    <img src="/SD_WLAN/c/logo.gif">
+                </p>
+            </div>
+        </div>
+
+        <div id="tab-acc" style="width:900px;height:410px;padding:2px;">
+
+            <div style="float: left;">
+                <input type="checkbox" id="checkAccEditMode" onclick="onSetAccEdit()">
+                <label for="checkAccEditMode" style="width:120px;"><span class="ui-icon ui-icon-gear" style="font-size:1em;"></span>Edit</label>
+            </div>
+
+            <div style="float:top;margin:4px;text-align:right;">
+                <button id="btnAccPageUp" onclick="onClickAccPage(0)" style="width:150px;">
+                    <span class="ui-icon ui-icon-triangle-1-n" style="font-size:1.5em;"></span>UP</button>
+                <button id="btnAccPageDown" onclick="onClickAccPage(1)" style="width:150px;">
+                    <span class="ui-icon ui-icon-triangle-1-s" style="font-size:1.5em;"></span>DOWN</button>
+            </div>
+
+
+            <canvas id="accCanvas" width="900" height="365" style="background-color:#FFFFFF;"></canvas>
+            <br/>
+
+        </div>
+
+        <div id="tab-map" style="width:900px;height:410px;padding:2px;">
+
+            <div style="float: left;">
+                <button id="checkMapSave" onclick="onClickSaveMaps()">
+                <label for="checkMapSave" style="width:120px;"><span class="ui-icon ui-icon-gear" style="font-size:1em;"></span>Save</label>
+                </button>
+            </div>
+            <div style="float:top;text-align:right;">
+
+                <label id="labelMapMsg"></label>
+                   
+                    <button id="checkMapClear" onclick="onClickClearMaps()">
+                    <label for="checkMapClear" style="width:120px;"><span class="ui-icon ui-icon-newwin" style="font-size:1em;"></span>Clear</label>
+                    </button>
+            </div>
+
+            <div style="float: left;">
+	            <div id="mapboxTool">
+	            <canvas id="mapCanvasTool" width="96" height="576" style="background-color:#FFFFFF;"></canvas>
+	            </div>
+	            
+	            <div id="mapboxMain">
+	            <canvas id="mapCanvasMain" width="4800" height="2400" style="background-color:#FFFFFF;"></canvas>
+	            </div>
+            </div>
+
+        </div>
+
+        <div id="tab-cv" style="width:900px;height:410px;padding:2px;">
+		
+        <div style="float:left;margin:1em;padding:1em;">
+            <label for="CVList" id="CVListLabel">CV List</label><br/>
+            <select id="CVList" >
+                <option value="1">CV1 ShortAddress</option>
+                <option value="2">CV2 Vstart</option>
+                <option value="3">CV3 Acceleration Rate</option>
+                <option value="4">CV4 Deceleration Rate</option>
+                <option value="5">CV5 Vhigh</option>
+                <option value="6">CV6 Vmid</option>
+                <option value="8">CV8 Decoder Reset</option>
+                <option value="9">CV9 Total PWM Period</option>
+                <option value="10">CV10 EMF Feedback Cutout</option>
+                <option value="11">CV11 Packet Time-Out Value</option>
+                <option value="17">CV17 Extended Address(L)</option>
+                <option value="18">CV18 Extended Address(H)</option>
+                <option value="29">CV29 Configuration Data</option>
+            </select>
+	        <p>
+			<label id="CVDescription">Description</label>
+	        </p>        </div>
+	        
+
+        <div style="margin:1em;padding:1em;">
+            <label for="CVValue" id="CVValueLabel">CV Value</label><br/>
+           <input id="CVValue" type="text">
+           <button id="CVValEditBtn" onclick="OpenCVValEdit()">Change</button><br/>
+           <label id="ReadCVValue">---</label>
+         </div>
+        
+        <div style="float:right;margin:1em;padding:1em;">
+	        
+	        <button id="CVReaderBtn" onclick="onClickCVRead()">
+	        <label for="CVReaderBtn" style="width:120px;"><span class="ui-icon ui-icon-gear"></span>Read</label>
+	        </button>
+	        <button id="CVWriterBtn" onclick="onClickCVWrite()">
+	        <label for="CVWriterBtn" style="width:120px;"><span class="ui-icon ui-icon-gear"></span>Write</label>
+	        </button>
+			<p>When wrote CV, the locomotive may run at the moment.</p>
+
+        </div>
+        
+	        <img src="/SD_WLAN/img/icon_cvwrite.png" style="margin:2em;">
+
+        
+        </div>
+
+        <div id="tab-cfg" style="width:900px;height:410px;padding:2px;">
+            <fieldset style="width:360px;float:left;">
+                <legend>Wifi Config</legend>
+                <div class="formarea">
+                    <p style="margin:0;padding:0.1em;">
+                        Master Code:
+                        <span id="mastercode"></span>
+                        <br>
+                        SSID:
+                        <br>
+                        <input name="appssid" id="appssid" type="text" value="" maxlength="32" />
+                        <br/>
+                        Password:
+                        <br>
+                        <input name="appnetworkkey" id="appnetworkkey" type="text" value="" maxlength="63" />
+                        <br>
+                    </p>
+                    <p style="float:right;margin-right:1em;">
+                        <button id="submit">submit</button>
+                        <span id="result"></span>
+                    </p>
+                </div>
+            </fieldset>
+
+            <fieldset style="width:360px;float:none;">
+                <legend>Information</legend>
+                <div class="formarea2">
+                    <p style="text-align: center;">
+                        <img src="/SD_WLAN/img/DSair_logo3.png" ><br/>
+                    </p>
+                    <p style="text-align: center;">
+                        <label id="status_firmver">Firmware:</label>
+                    </p>                   
+                </div>
+            </fieldset>
+
+            <fieldset style="width:360px;float:left;">
+                    <legend>Etc</legend>
+                    <div class="formarea2">
+                        <p>
+                            Display Max Speed: 
+                            <span id="maxspeed_label"></span> km/h
+                                <br>
+                            <div style="width:300px;">
+                                <div id="maxspeed_slider"></div>
+                            </div>
+    
+                        </p>
+                    </div>
+                </fieldset> 
+
+            <fieldset style="width:360px;float:none;">
+            <legend>Protocol</legend>
+            <div class="formarea2">
+                <div id="protcolset_acc" style="float:left;margin-right:1em;">
+                    <p style="margin:0;padding:0.1em;">
+                    <label style="width:120px;">Accessory</label> 
+                    <input type="radio" id="radio1a" name="radio_acc" onclick="onSelectAccProtocol()" value="1" checked="checked" />
+                    <label for="radio1a">DCC</label>
+                    <input type="radio" id="radio2a" name="radio_acc" onclick="onSelectAccProtocol()" value="2" />
+                    <label for="radio2a">MM2</label>
+                    </p>
+                </div>
+
+                <div id="protcolset">
+                    <p style="margin:0;padding:0.1em;">
+                        <label style="width:120px;">Locomotive</label> 
+                        <input type="radio" id="radio1" name="radio_loc" onclick="onSelectProtocol()" value="1" checked="checked" />
+                        <label for="radio1">DCC</label>
+                        <input type="radio" id="radio2" name="radio_loc" onclick="onSelectProtocol()" value="2" />
+                        <label for="radio2">MM</label>
+                    </p>
+                </div>
+            </div>
+            </fieldset>      
+        </div>
+
+        <div id="tab-sta" style="width:900px;height:410px;padding:2px;">
+            <fieldset style="width:480px;float:none;">
+                <legend>DSair Status</legend>
+                <div class="formarea2">
+                    <p style="margin:0;padding:0.1em;">
+                        <label style="width:120px;"></label><br/> 
+                        <label id="status_volt">Track Voltage:</label><br/>
+                        <label id="status_current">Output Current:</label><br/>
+                        <label id="status_error">Error:</label><br/>
+                        <label id="status_power">Power:</label><br/>
+                        <label id="status_locs">Controlled Loc nums:</label><br/>
+                        <br/>
+                        <label id="status_hardver">Hardware:</label><br/>
+                        <label id="status_seqno">Alive Seq:</label><br/>
+                        <label id="status_replymsg">Reply Msg:</label><br/>
+                        <label id="status_replyacc">Reply Acc:</label><br/>
+                        
+                    </p>
+                </div>
+            </fieldset>
+        </div>
+
+
+
+        </div>
+    </div>
+
+
+
+</body>
+
+</html>

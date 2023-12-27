@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Education Platform</title>
+  <link rel="apple-touch-icon" href="/SD_WLAN/c/apple-touch-icon.png" />
+  <link rel="shortcut icon" href="/SD_WLAN/c/favicon.ico" type="image/vnd.microsoft.icon">
+  <link rel="stylesheet" href="/SD_WLAN/c/jqui.css" />
+  <link rel="stylesheet" href="/SD_WLAN/c/jquery-ui-1.12.icon-font.min.css" />
+  <link rel="stylesheet" href="/SD_WLAN/block/css/app.css" />
+  <script src="/SD_WLAN/c/jq.js"></script>
+  <script src="/SD_WLAN/c/jqui.js"></script>
+  <script src="/SD_WLAN/block/blockly_compressed.js"></script>
+  <script src="/SD_WLAN/block/blocks_compressed.js"></script>
+  <script src="/SD_WLAN/block/javascript_compressed.js"></script>
+  <!-- <script src="/SD_WLAN/block/acorn_interpreter.js"></script> -->
+  <script src="/SD_WLAN/block/interpreter.js"></script>
+  <script src="/SD_WLAN/block/acorn.js"></script>
+  <script src="/SD_WLAN/block/ds_block.js"></script>
+  <script src="/SD_WLAN/block/ds_func.js"></script>
+  <script src="/SD_WLAN/block/sound.js"></script>
+  <script src="/SD_WLAN/block/device.js"></script>
+  <script src="/SD_WLAN/block/ds_lang.js"></script>
+
+</head>
+
+<body onload="onLoad()">
+
+  <p>
+    <button onclick="showCode()" id="btn_gen"><span class="ui-icon ui-icon-search" style="font-size:1.2em;"></span>コード</button>
+    <button onclick="runCode()" id="btn_run"><span class="ui-icon ui-icon-play" style="font-size:1.2em;"></span>動かす</button>
+    <button onclick="stopCode()" id="btn_stop"><span class="ui-icon ui-icon-stop" style="font-size:1.2em;"></span>止める</button>
+    <span class="btn_files">
+      <button onclick="XML_LoadDialog()" id="btn_load"><span class="ui-icon ui-icon-folder-open" style="font-size:1.2em;"></span>ひらく</button>
+      <button onclick="XML_SaveDialog()" id="btn_save"><span class="ui-icon ui-icon-disk" style="font-size:1.2em;"></span>しまう</button>
+    </span>
+    <span class="btn_files">
+      <button onclick="NewXML()" id="btn_new"><span class="ui-icon ui-icon-trash" style="font-size:1.2em;"></span>けす</button>
+    </span>
+    <button onclick="returnToHome()" id="btn_ret"><span class="ui-icon ui-icon-home" style="font-size:1.2em;"></span></button>
+    <button onclick="onClickLang()" id="lang_img">EN</button>
+    
+    <img src="/SD_WLAN/block/img/logo.png" align="right" style="margin-right:0.1em;" width="200">
+  </p>
+
+
+  <div id="blocklyDiv" style="display: inline-block;height: 460px; width: 100%;"></div>
+  <canvas id="statusview" width="50" height="160"></canvas>
+  <canvas id="deco" width="120" height="196"></canvas>
+  <canvas id="deco_talk" width="200" height="96"></canvas>
+  <canvas id="deco_excr" width="96" height="93"></canvas>
+  
+    <div id="dialogXml" title="Dialog">
+    
+    </div>
+  
+
+  <xml id="toolbox" style="display: none">
+    <category name="%{BKY_MENU_LEFT_LOGIC}" colour="%{BKY_LOGIC_HUE}">
+      <block type="controls_if"></block>
+      <block type="controls_if">
+        <mutation else="1"></mutation>
+      </block>
+      <block type="controls_if">
+        <mutation elseif="1" else="1"></mutation>
+      </block>
+      <block type="logic_compare"></block>
+      <block type="logic_operation"></block>
+      <block type="logic_negate"></block>
+      <block type="logic_boolean"></block>
+      <block type="logic_null"></block>
+      <block type="logic_ternary"></block>
+    </category>
+    <category name="%{BKY_MENU_LEFT_LOOPS}" colour="%{BKY_LOOPS_HUE}">
+      <block type="controls_repeat_ext">
+        <value name="TIMES">
+          <shadow type="math_number">
+            <field name="NUM">10</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="controls_whileUntil"></block>
+      <block type="controls_for">
+        <value name="FROM">
+          <shadow type="math_number">
+            <field name="NUM">1</field>
+          </shadow>
+        </value>
+        <value name="TO">
+          <shadow type="math_number">
+            <field name="NUM">10</field>
+          </shadow>
+        </value>
+        <value name="BY">
+          <shadow type="math_number">
+            <field name="NUM">1</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="controls_forEach"></block>
+      <block type="controls_flow_statements"></block>
+    </category>
+    <category name="%{BKY_MENU_LEFT_NUMS}" colour="%{BKY_MATH_HUE}">
+      <block type="math_number">
+        <field name="NUM">123</field>
+      </block>
+      <block type="math_arithmetic">
+        <value name="A">
+          <shadow type="math_number">
+            <field name="NUM">1</field>
+          </shadow>
+        </value>
+        <value name="B">
+          <shadow type="math_number">
+            <field name="NUM">1</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="math_single">
+        <value name="NUM">
+          <shadow type="math_number">
+            <field name="NUM">9</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="math_trig">
+        <value name="NUM">
+          <shadow type="math_number">
+            <field name="NUM">45</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="math_constant"></block>
+      <block type="math_number_property">
+        <value name="NUMBER_TO_CHECK">
+          <shadow type="math_number">
+            <field name="NUM">0</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="math_round">
+        <value name="NUM">
+          <shadow type="math_number">
+            <field name="NUM">3.1</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="math_on_list"></block>
+      <block type="math_modulo">
+        <value name="DIVIDEND">
+          <shadow type="math_number">
+            <field name="NUM">64</field>
+          </shadow>
+        </value>
+        <value name="DIVISOR">
+          <shadow type="math_number">
+            <field name="NUM">10</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="math_constrain">
+        <value name="VALUE">
+          <shadow type="math_number">
+            <field name="NUM">50</field>
+          </shadow>
+        </value>
+        <value name="LOW">
+          <shadow type="math_number">
+            <field name="NUM">1</field>
+          </shadow>
+        </value>
+        <value name="HIGH">
+          <shadow type="math_number">
+            <field name="NUM">100</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="math_random_int">
+        <value name="FROM">
+          <shadow type="math_number">
+            <field name="NUM">1</field>
+          </shadow>
+        </value>
+        <value name="TO">
+          <shadow type="math_number">
+            <field name="NUM">100</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="math_random_float"></block>
+      <block type="math_atan2">
+        <value name="X">
+          <shadow type="math_number">
+            <field name="NUM">1</field>
+          </shadow>
+        </value>
+        <value name="Y">
+          <shadow type="math_number">
+            <field name="NUM">1</field>
+          </shadow>
+        </value>
+      </block>
+    </category>
+    <category name="%{BKY_MENU_LEFT_LIST}" colour="%{BKY_LISTS_HUE}">
+      <block type="lists_create_empty"></block>
+      <block type="lists_create_with"></block>
+      <block type="lists_repeat">
+        <value name="NUM">
+          <block type="math_number">
+            <field name="NUM">5</field>
+          </block>
+        </value>
+      </block>
+      <block type="lists_length"></block>
+      <block type="lists_isEmpty"></block>
+      <block type="lists_indexOf"></block>
+      <block type="lists_getIndex"></block>
+      <block type="lists_setIndex"></block>
+    </category>
+    <category name="%{BKY_MENU_LEFT_TEXT}" colour="%{BKY_TEXTS_HUE}">
+      <block type="text"></block>
+      <block type="text_join"></block>
+      <block type="text_append">
+        <value name="TEXT">
+          <shadow type="text"></shadow>
+        </value>
+      </block>
+      <block type="text_length">
+        <value name="VALUE">
+          <shadow type="text">
+            <field name="TEXT">abc</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="text_isEmpty">
+        <value name="VALUE">
+          <shadow type="text">
+            <field name="TEXT"></field>
+          </shadow>
+        </value>
+      </block>
+      <block type="text_indexOf">
+        <value name="VALUE">
+          <block type="variables_get">
+            <field name="VAR">{textVariable}</field>
+          </block>
+        </value>
+        <value name="FIND">
+          <shadow type="text">
+            <field name="TEXT">abc</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="text_charAt">
+        <value name="VALUE">
+          <block type="variables_get">
+            <field name="VAR">{textVariable}</field>
+          </block>
+        </value>
+      </block>
+      <block type="text_getSubstring">
+        <value name="STRING">
+          <block type="variables_get">
+            <field name="VAR">{textVariable}</field>
+          </block>
+        </value>
+      </block>
+      <block type="text_changeCase">
+        <value name="TEXT">
+          <shadow type="text">
+            <field name="TEXT">abc</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="text_trim">
+        <value name="TEXT">
+          <shadow type="text">
+            <field name="TEXT">abc</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="text_print">
+        <value name="TEXT">
+          <shadow type="text">
+            <field name="TEXT">abc</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="text_prompt_ext">
+        <value name="TEXT">
+          <shadow type="text">
+            <field name="TEXT">abc</field>
+          </shadow>
+        </value>
+      </block>
+    </category>
+    <sep></sep>
+    <category name="%{BKY_MENU_LEFT_VAR}" colour="%{BKY_VARIABLES_HUE}" custom="VARIABLE"></category>
+    <category name="%{BKY_MENU_LEFT_PROCEDURE}" colour="%{BKY_PROCEDURES_HUE}" custom="PROCEDURE"></category>
+    <sep></sep>
+
+    <category name="%{BKY_MENU_LEFT_BAS}" colour="180">
+      <block type="beginthis"></block>
+      <block type="exitthis"></block>
+      <block type="beginthis2"></block>
+      <block type="exitthis2"></block>
+      <block type="waitsleep"></block>
+      <block type="waitsleep2"></block>
+      <block type="ChangeProtocolDCC"></block>
+      <block type="ChangeProtocolMM2"></block>
+    </category>
+    <category name="%{BKY_MENU_LEFT_PWR}" colour="320">
+      <block type="power"></block>
+      <block type="powerx"></block>
+    </category>
+    <category name="%{BKY_MENU_LEFT_LOC}" colour="%{BKY_MATH_HUE}">
+      <block type="speed"></block>
+      <block type="speedx"></block>
+      <block type="stop_func"></block>
+      <block type="stop_funcx"></block>
+      <block type="direction"></block>
+      <block type="directionx"></block>
+      <block type="locfunction"></block>
+      <block type="locfunctionx"></block>
+      <block type="locfunction2"></block>
+    </category>
+    <category name="%{BKY_MENU_LEFT_TURNOUT}" colour="315">
+      <block type="turnout"></block>
+      <block type="turnoutx"></block>
+    </category>
+    <!--
+    <category name="Slot" colour="%{BKY_MATH_HUE}">
+      <block type="getslotspeed"></block>
+      <block type="getslotaddr"></block>
+      <block type="getslotfnc"></block>
+    </category>
+-->
+    <category name="%{BKY_MENU_LEFT_SENSOR}" colour="260">
+      <block type="s88start"></block>
+      <block type="s88get"></block>
+      <block type="s88getx"></block>
+    </category>
+    <category name="%{BKY_MENU_LEFT_ETC}" colour="230">
+      <block type="playmp3"></block>
+      <block type="playmp3list"></block>
+      <block type="stopmp3"></block>
+      <block type="analogpwm"></block>
+      <block type="analogdir"></block>
+    </category>
+    <category name="%{BKY_MENU_LEFT_DECO}" colour="10">
+      <block type="show_deco"></block>
+      <block type="say_deco"></block>
+      <block type="say_decox"></block>
+      <block type="excr_deco"></block>
+      <block type="close_deco"></block>
+    </category>
+  </xml>
+
+  <script>
+    var demoWorkspace = Blockly.inject('blocklyDiv', {
+      media: '/SD_WLAN/block/media/',
+      toolbox: document.getElementById('toolbox'),
+     zoom:
+         {controls: true,
+          wheel: true,
+          startScale: 1.0,
+          maxScale: 3,
+          minScale: 0.3,
+          scaleSpeed: 1.2},
+	grid:
+         {spacing: 20,
+          length: 3,
+          colour: '#ccc',
+          snap: true},	          
+          
+     trashcan: true
+    });
+
+    // Exit is used to signal the end of a script.
+    Blockly.JavaScript.addReservedWords('exit');
+  </script>
+  <script src="/SD_WLAN/block/commands.js"></script>
+  <script src="/SD_WLAN/block/main.js"></script>
+
+</body>
+
+</html>

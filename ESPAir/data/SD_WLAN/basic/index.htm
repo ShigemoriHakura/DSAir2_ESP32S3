@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>DSbasic</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Desktop Station Co.,Ltd.">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="apple-touch-icon" href="/SD_WLAN/c/apple-touch-icon.png" />
+    <link rel="shortcut icon" href="/SD_WLAN/c/favicon.ico" type="image/vnd.microsoft.icon">
+    <link rel="stylesheet" href="/SD_WLAN/c/jqui.css" />
+    <link rel="stylesheet" href="/SD_WLAN/c/jquery-ui-1.12.icon-font.min.css" />    
+    <link rel="stylesheet" href="/SD_WLAN/basic/app.css" />
+    <script src="/SD_WLAN/c/jq.js"></script>
+    <script src="/SD_WLAN/c/jqui.js"></script>
+    <script src="/SD_WLAN/js/device.js"></script>
+    <script src="/SD_WLAN/js/config.js"></script>
+    <script src="/SD_WLAN/js/manager.js"></script>
+    <script src="/SD_WLAN/basic/storage.js"></script>
+    <script src="/SD_WLAN/basic/main.js"></script>
+    <script src="/SD_WLAN/basic/src-min-noconflict/ace.js"></script>
+    <script src="/SD_WLAN/basic/wwwbasic.js"></script>
+
+</head>
+
+<body onload="onLoad()">
+
+    <div id="dialogMsg" title="Information">
+        <form>
+            <p style="display:none;" id="dialogMsg_msg">
+                <b>Map Data Saved!</b>
+            </p>
+        </form>
+    </div>
+    
+    <div id="dialogBas" title="Open BASIC program">
+    
+    </div>
+
+    <div id="dialogLog" title="Dialog">
+    </div>
+    
+	<p id="basic_btn">
+		<button id="basic_int" onclick="BASIC_ConfigInterval()"><span class="ui-icon ui-icon-refresh" style="font-size:2em;" id="basic_statusInterval"></span></button>
+		<button id="basic_run" onclick="onRunBasic()"><span class="ui-icon ui-icon-play" style="font-size:2em;" id="basic_statusrun"></span>Run</button>
+		<button id="basic_load" onclick="BASIC_Load()"><span class="ui-icon ui-icon-folder-open" style="font-size:2em;"></span>Load</button>
+		<button id="basic_save" onclick="BASIC_Save()"><span class="ui-icon ui-icon-disk" style="font-size:2em;"></span>Save</button>
+		<button id="basic_new" onclick="BASIC_New()"><span class="ui-icon ui-icon-trash" style="font-size:2em;"></span>New</button>
+ 	   <button onclick="returnToHome()" id="btn_ret"><span class="ui-icon ui-icon-home" style="font-size:2em;"></span></button>
+    
+    <img src="/SD_WLAN/c/logo.png" align="right" style="margin-right:0.1em;">
+    </p>
+ 
+
+   <div id="tab-bas">
+<div id="texteditor">screen(7)
+print "DesktopStation BASIC version 1.1"
+print "Copyright (C) 2021, by DesktopStation"
+print "9999999 Bytes free"
+print "Ok"
+</div>
+            <div id="basic_tv">
+                <canvas id="basic_out" width="400" height="270"></canvas>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+    <script src="/SD_WLAN/basic/wwwbasic_main.js"></script>
+
+</html>

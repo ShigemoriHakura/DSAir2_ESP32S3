@@ -1,0 +1,96 @@
+.btn_files{
+margin-right:20px;
+margin-left:20px;
+}
+
+
+body {
+    background-color: #fff;
+    font-family: sans-serif;
+  }
+
+  h1 {
+    font-weight: normal;
+    font-size: 140%;
+  }
+  
+  
+#statusview {
+    background-color: transparent;
+	    position:absolute;
+	    z-index: 100;
+	    right: 45px;
+	    top: 100px;
+}
+
+#deco {
+    background-color: transparent;
+	    position:absolute;
+	    z-index: 0;
+	    right: 130px;
+	    top: 80px;
+}
+
+#deco_talk {
+    background-color: transparent;
+	    position:absolute;
+	    z-index: 0;
+	    right: 225px;
+	    top: 72px;
+}
+
+#deco_excr {
+    background-color: transparent;
+	    position:absolute;
+	    z-index: 0;
+	    right: 225px;
+	    top: 72px;
+}
+
+.ui-button.redButton {
+    background-color: red;
+}
+
+
+#texteditor {
+  width: 400px;
+  height: 380px;
+  float:left;
+  margin:1em;
+  border: medium solid #AAAAAA;
+}
+
+#basic_run{
+  align:right;
+}
+
+#basic_btn{
+  margin:0px;
+}
+
+#basic_tv{
+  float:right;
+  overflow:hidden;
+  margin-top:30px;
+  background-image:url("/SD_WLAN/img/OldTV.png");
+  background-repeat: no-repeat;
+  width:450px;
+}
+
+#basic_out{
+  margin:20px;
+}
+
+#basic_copyright{
+  float:right bottom;
+}
+
+#dialogBas.ui-dialog-buttonset{
+   font-size:20px;
+   width: 100%;
+   display: flex;
+   display: -webkit-flex;
+   text-align: center;
+   justify-content: space-around;
+   -webkit-justify-content: space-around;
+}
