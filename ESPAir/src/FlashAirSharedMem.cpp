@@ -11,13 +11,12 @@
                                               LocoAddr 0:49152(0xC000) - 9999:59151(0xE70F)
                                               AccAddr 1:14336(0x3800 - 2044:16380(0x3FFC)
 */
-#define DEBUG
-//#include <M5Atom.h>
+//#define DEBUG
+//#define WIFI_MODE
 #include <WiFi.h>
 #include <DNSServer.h>
 #include <WebServer.h>
 #include <detail/mimetable.h>
-//#include "ServerFile.cpp"
 #include <FlashAirSharedMem.h>
 #include "FFat.h"
 
@@ -30,6 +29,7 @@ WebServer server(80);
 volatile uint8_t shared_memory[512] = {};
 portMUX_TYPE shared_mutex = portMUX_INITIALIZER_UNLOCKED;
 
+#ifdef DEBUG
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
     Serial.printf("Listing directory: %s\r\n", dirname);
 
@@ -61,50 +61,53 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
         file = root.openNextFile();
     }
 }
+#endif
 
 String getContentType(String filename) {
-  if (server.hasArg("download")) {
-    return "application/octet-stream";
-  } else if (filename.endsWith(".htm")) {
-    return "text/html";
-  } else if (filename.endsWith(".html")) {
-    return "text/html";
-  } else if (filename.endsWith(".css")) {
-    return "text/css";
-  } else if (filename.endsWith(".js")) {
-    return "application/javascript";
-  } else if (filename.endsWith(".png")) {
-    return "image/png";
-  } else if (filename.endsWith(".gif")) {
-    return "image/gif";
-  } else if (filename.endsWith(".jpg")) {
-    return "image/jpeg";
-  } else if (filename.endsWith(".ico")) {
-    return "image/x-icon";
-  } else if (filename.endsWith(".xml")) {
-    return "text/xml";
-  } else if (filename.endsWith(".pdf")) {
-    return "application/x-pdf";
-  } else if (filename.endsWith(".zip")) {
-    return "application/x-zip";
-  } else if (filename.endsWith(".gz")) {
-    return "application/x-gzip";
-  }
-  return "text/plain";
+    if (server.hasArg("download")) {
+        return "application/octet-stream";
+    } else if (filename.endsWith(".htm")) {
+        return "text/html";
+    } else if (filename.endsWith(".html")) {
+        return "text/html";
+    } else if (filename.endsWith(".css")) {
+        return "text/css";
+    } else if (filename.endsWith(".js")) {
+        return "application/javascript";
+    } else if (filename.endsWith(".png")) {
+        return "image/png";
+    } else if (filename.endsWith(".gif")) {
+        return "image/gif";
+    } else if (filename.endsWith(".jpg")) {
+        return "image/jpeg";
+    } else if (filename.endsWith(".ico")) {
+        return "image/x-icon";
+    } else if (filename.endsWith(".xml")) {
+        return "text/xml";
+    } else if (filename.endsWith(".pdf")) {
+        return "application/x-pdf";
+    } else if (filename.endsWith(".zip")) {
+        return "application/x-zip";
+    } else if (filename.endsWith(".gz")) {
+        return "application/x-gzip";
+    }
+    return "text/plain";
 }
 
 static void server_task(void *pvParameters) {
-    //WiFi.softAP(wlan_ssid, wlan_pass);
+#ifdef WIFI_MODE
     WiFi.mode(WIFI_STA);
-    WiFi.begin("NintendoSwitch", "Suzume0317");
+    WiFi.begin(wlan_ssid, wlan_pass);
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
-        Serial.print(".");
     }
-    //dns.start(53, "flashair", WiFi.softAPIP());
     dns.start(53, "flashair", WiFi.localIP());
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
+#else
+    WiFi.softAP(wlan_ssid, wlan_pass);
+    dns.start(53, "flashair", WiFi.softAPIP());
+#endif
 
     if(!FFat.begin(true)){
         Serial.println("An Error has occurred while mounting FFat");
@@ -124,9 +127,9 @@ static void server_task(void *pvParameters) {
     });
     server.on("/dir", []() {
         String path = server.arg("dir");
+#ifdef DEBUG
         Serial.println("handleFileList: " + path);
-
-
+#endif
         File root = FFat.open(path);
         path = String();
 
@@ -154,11 +157,11 @@ static void server_task(void *pvParameters) {
             arg_msg += "&" + server.argName(i) + "=" + server.arg(i);
         }
 
-        //Serial.println(arg_msg);
-
+#ifdef DEBUG
+        Serial.println(arg_msg);
+#endif
         bool sent = false;
         int power = ((shared_memory[0x80] == 'Y') ? 0x008000 : 0); // Rail Power
-        //M5.dis.drawpix(0, power + 0xFF00C0);
         uint16_t arg_addr = server.arg("ADDR").toInt();
         uint16_t arg_len = server.arg("LEN").toInt();
         switch (server.arg("op").toInt()) {
@@ -203,7 +206,6 @@ static void server_task(void *pvParameters) {
         if (!sent) {
             server.send(400); // 400 Bad Request
         }
-        //M5.dis.drawpix(0, power);
     });
 
     server.onNotFound([]() {
@@ -211,36 +213,26 @@ static void server_task(void *pvParameters) {
             server.send(405); // 405 Method Not Allowed
             return;
         }
-        //File fileToRead = FFat.open(server.uri());
-        //const mime::Entry *pt = mime::mimeTable;
         String contentType = getContentType(server.uri());
+
+#ifdef DEBUG
         Serial.println(server.uri() + " (" + contentType + ")");
+#endif
+
         if ( FFat.exists( server.uri() ) )
         {
+#ifdef DEBUG
             Serial.println( "file exists");
+#endif
             File fileToRead = FFat.open(server.uri());
-            //server.send(200, pt->mimeType, "");
             server.streamFile(fileToRead, contentType, 200);
-            //server.setContentLength(pf->size);
-            //server.send(200, pt->mimeType, "");
-            //server.sendContent(pf->data, pf->size);
+            return;
         }else{
+#ifdef DEBUG
             Serial.println( "file not found!");
+#endif
+
         }
-        /*for (const struct st_server_file *pf = SERVER_FILE; pf->data; pf++) {
-            if (server.uri().equals(pf->url)) {
-                const mime::Entry *pt = mime::mimeTable;
-                while (!server.uri().endsWith(pt->endsWith)) { pt++; };
-                int power = ((shared_memory[0x80] == 'Y') ? 0x008000 : 0); // Rail Power
-                //M5.dis.drawpix(0, power + 0xFF0000);
-                Serial.println(server.uri() + " (" + pt->mimeType + ")");
-                server.setContentLength(pf->size);
-                server.send(200, pt->mimeType, "");
-                server.sendContent(pf->data, pf->size);
-                //M5.dis.drawpix(0, power);
-                return;
-            }
-        }*/
         server.send(404); // 404 Not Found
     });
     server.begin();

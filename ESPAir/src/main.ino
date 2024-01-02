@@ -249,7 +249,10 @@ void setup()
 {
 	/* Debug message for PC */
 	Serial.begin(115200);
-	while (!Serial);
+	int i = 0;
+	do{
+		i ++;
+	}while (!Serial && i < 200);
 
 	Serial.println("Desktop Station air");
 
@@ -898,7 +901,7 @@ void loop()
 			// xV = gEdc_data / 4096 * 3.3 * 10 * 10
 			// ->
 			//aEdc = (((long)gEdc_data * 246) >> 10);
-			aEdc = (long)gEdc_data * 0.085;
+			aEdc = (long)gEdc_data * 0.0619;
 
 			if( aEdc > 255)
 			{
@@ -939,9 +942,9 @@ void loop()
 
 
 		/* DSairR2 HW  */
-		if( (digitalRead(PIN_ALERT) == 0) && (gHardware == HW_DSAIR2))
+		if( (digitalRead(PIN_ALERT) == 1) && (gHardware == HW_DSAIR2))
 		{
-			//Falut happened at DRV8876
+			//Falut happened at TB6642FG
 			aErrNo = 8;
 		}
 
